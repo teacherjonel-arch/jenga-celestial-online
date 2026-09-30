@@ -32,37 +32,37 @@
   <div id="setup-modal" class="fixed inset-0 bg-sky-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="bg-gradient-to-b from-sky-50 via-white to-amber-50/30 border-2 border-amber-300 rounded-3xl shadow-2xl p-6 max-w-md w-full text-center">
       <h2 class="text-2xl font-extrabold text-sky-950 mb-2">☁️ Jenga Celestial ✝️</h2>
-      <p class="text-xs text-gray-600 mb-4">Ingresa tu nombre para jugar. En modo online, cada jugador registra su propio nombre:</p>
-      
-      <div id="players-input-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto p-1">
-        <input type="text" placeholder="Jugador 1" class="player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400">
-        <input type="text" placeholder="Jugador 2" class="player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400">
+      <p class="text-xs text-gray-600 mb-4">Ingresa <b>tu propio nombre</b>. Luego crea una sala o únete con el código que te compartió el anfitrión.</p>
+
+      <div id="players-input-list" class="space-y-2 mb-4 p-1">
+        <input id="player-name-input" type="text" maxlength="30" autocomplete="nickname" placeholder="Escribe tu nombre" class="player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400 text-center">
       </div>
 
-      <!-- MODO ONLINE: sala de 4 jugadores -->
       <div class="border border-sky-200 rounded-2xl p-3 mb-4 bg-white/60">
-        <div class="text-xs font-extrabold text-sky-900 mb-2">🌐 JUEGO ONLINE · HASTA 4 JUGADORES</div>
+        <div class="text-xs font-extrabold text-sky-900 mb-2">🌐 JUEGO ONLINE · 2 A 4 JUGADORES</div>
         <div class="flex gap-2">
           <button id="btn-create-room" onclick="createOnlineRoom()" class="flex-1 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">CREAR SALA</button>
           <button id="btn-show-join" onclick="showJoinRoom()" class="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-2 rounded-xl text-xs transition-all">UNIRSE</button>
         </div>
         <div id="online-room-area" class="hidden mt-3">
-          <input id="room-code-input" type="text" maxlength="6" placeholder="CÓDIGO DE SALA"
-            class="w-full px-3 py-2 border border-sky-200 rounded-xl text-sm text-center uppercase tracking-widest focus:outline-none focus:border-amber-400">
-          <button id="btn-join-room" onclick="joinOnlineRoom()" class="hidden mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs">UNIRME A LA SALA</button>
+          <div id="host-room-code" class="hidden mb-2 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center">
+            <div class="text-[10px] font-bold text-gray-600">CÓDIGO DE SALA</div>
+            <div id="room-code-display" class="text-xl font-extrabold tracking-[0.3em] text-sky-950">------</div>
+            <div class="text-[10px] text-gray-600 mt-1">Comparte este código con los demás jugadores.</div>
+          </div>
+          <div id="join-code-area" class="hidden">
+            <input id="room-code-input" type="text" maxlength="6" placeholder="CÓDIGO DE SALA" autocomplete="off" class="w-full px-3 py-2 border border-sky-200 rounded-xl text-sm text-center uppercase tracking-widest focus:outline-none focus:border-amber-400">
+            <button id="btn-join-room" onclick="joinOnlineRoom()" class="mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs">UNIRME A LA SALA</button>
+          </div>
           <div id="online-status" class="mt-2 text-[11px] text-sky-700 text-center font-semibold"></div>
           <div id="room-players" class="mt-2 text-left text-[11px] text-sky-950"></div>
-          <button id="btn-online-start" onclick="startGame()" class="hidden mt-2 w-full bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold py-2 rounded-xl text-xs">INICIAR JUEGO</button>
+          <button id="btn-online-start" onclick="startGame()" class="hidden mt-3 w-full bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md">INICIAR JUEGO</button>
         </div>
       </div>
 
-      <div class="flex gap-2 mb-4">
-        <button onclick="addPlayerInput()" class="w-1/2 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">
-          + Agregar Jugador
-        </button>
-        <button onclick="startGame()" class="w-1/2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-2 rounded-xl shadow-md text-xs transition-all">
-          ¡Comenzar Juego! 🚀
-        </button>
+      <div id="offline-controls" class="hidden flex gap-2 mb-4">
+        <button onclick="addPlayerInput()" class="w-1/2 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">+ Agregar Jugador</button>
+        <button onclick="startGame()" class="w-1/2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-2 rounded-xl shadow-md text-xs transition-all">¡Comenzar Juego! 🚀</button>
       </div>
     </div>
   </div>
@@ -140,8 +140,8 @@
     }
 
     function getPlayerName() {
-      const input = document.querySelector('.player-name-input');
-      return (input && input.value.trim()) || 'Jugador';
+      const input = document.getElementById('player-name-input');
+      return (input && input.value.trim()) || '';
     }
 
     function setOnlineStatus(msg) {
@@ -171,9 +171,12 @@
     }
 
     function showJoinRoom() {
+      if (!getPlayerName()) { setOnlineStatus('Escribe tu nombre antes de unirte.'); document.getElementById('player-name-input').focus(); return; }
       onlineMode = true;
       isHost = false;
       document.getElementById('online-room-area').classList.remove('hidden');
+      document.getElementById('host-room-code').classList.add('hidden');
+      document.getElementById('join-code-area').classList.remove('hidden');
       document.getElementById('room-code-input').value = '';
       document.getElementById('btn-join-room').classList.remove('hidden');
       document.getElementById('btn-online-start').classList.add('hidden');
@@ -216,10 +219,13 @@
     }
 
     function createOnlineRoom() {
+      if (!getPlayerName()) { setOnlineStatus('Escribe tu nombre antes de crear la sala.'); document.getElementById('player-name-input').focus(); return; }
       onlineMode = true;
       isHost = true;
       myPlayerIndex = 0;
       document.getElementById('online-room-area').classList.remove('hidden');
+      document.getElementById('host-room-code').classList.remove('hidden');
+      document.getElementById('join-code-area').classList.add('hidden');
       document.getElementById('btn-join-room').classList.add('hidden');
       setOnlineStatus('Creando sala...');
       connectSocket(() => sendOnline({ type: 'create_room', name: getPlayerName() }));
@@ -244,7 +250,7 @@
         sendOnline({ type: 'start_game' });
         return;
       }
-      players = Array.from(document.querySelectorAll('.player-name-input')).map((input, i) => input.value.trim() || `Jugador ${i + 1}`);
+      players = [getPlayerName() || 'Jugador 1'];
       currentPlayerIndex = 0;
       updateTurnBanner();
       document.getElementById('setup-modal').classList.add('hidden');
@@ -258,14 +264,14 @@
     function handleServerMessage(msg) {
       if (msg.type === 'room_created') {
         roomCode = msg.roomCode; myPlayerIndex = 0; players = msg.players || [];
-        document.getElementById('room-code-input').value = roomCode;
+        document.getElementById('room-code-display').textContent = roomCode;
         updateOnlineLobby();
         setOnlineStatus(`Código ${roomCode}. Comparte este código con los demás jugadores (hasta 4).`);
         return;
       }
       if (msg.type === 'joined') {
         roomCode = msg.roomCode; myPlayerIndex = msg.playerIndex; players = msg.players || [];
-        document.getElementById('room-code-input').value = roomCode;
+        document.getElementById('room-code-display').textContent = roomCode;
         updateOnlineLobby();
         return;
       }
