@@ -32,38 +32,30 @@
   <div id="setup-modal" class="fixed inset-0 bg-sky-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="bg-gradient-to-b from-sky-50 via-white to-amber-50/30 border-2 border-amber-300 rounded-3xl shadow-2xl p-6 max-w-md w-full text-center">
       <h2 class="text-2xl font-extrabold text-sky-950 mb-2">☁️ Jenga Celestial ✝️</h2>
-      <p class="text-xs text-gray-600 mb-4">Ingresa el nombre de los jugadores (mínimo 1 jugador):</p>
-      
-      <div id="players-input-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto p-1">
-        <input type="text" placeholder="Jugador 1" class="player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400">
-        <input type="text" placeholder="Jugador 2" class="player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400">
+      <p class="text-xs text-gray-600 mb-4">Conéctate a una sala y juega con hasta 4 participantes.</p>
+
+      <div class="mb-3">
+        <input id="player-name-input" type="text" maxlength="24" placeholder="TU NOMBRE" autocomplete="name" class="w-full px-3 py-2 border border-sky-200 rounded-xl text-center text-sm font-bold focus:outline-none focus:border-amber-400">
+        <div class="text-[10px] text-gray-500 mt-1">Cada participante registra su propio nombre.</div>
       </div>
 
-      <!-- MODO ONLINE: sala de 4 jugadores -->
-      <div class="border border-sky-200 rounded-2xl p-3 mb-4 bg-white/60">
-        <div class="text-xs font-extrabold text-sky-900 mb-2">🌐 JUEGO ONLINE · 4 JUGADORES</div>
-        <div class="flex gap-2">
-          <button id="btn-create-room" onclick="createOnlineRoom()" class="flex-1 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">CREAR SALA</button>
-          <button id="btn-show-join" onclick="showJoinRoom()" class="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-2 rounded-xl text-xs transition-all">UNIRSE</button>
+      <div id="online-room-area" class="mb-4">
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-create-room" onclick="createOnlineRoom()" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2.5 rounded-xl text-xs transition-all">CREAR SALA</button>
+          <button id="btn-show-join" onclick="showJoinRoom()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-2.5 rounded-xl text-xs transition-all">UNIRSE</button>
         </div>
-        <div id="online-room-area" class="hidden mt-3">
-          <input id="room-code-input" type="text" maxlength="6" placeholder="CÓDIGO DE SALA"
-            class="w-full px-3 py-2 border border-sky-200 rounded-xl text-sm text-center uppercase tracking-widest focus:outline-none focus:border-amber-400">
-          <button id="btn-join-room" onclick="joinOnlineRoom()" class="hidden mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs">UNIRME A LA SALA</button>
-          <div id="online-status" class="mt-2 text-[11px] text-sky-700 text-center font-semibold"></div>
-          <div id="room-players" class="mt-2 text-left text-[11px] text-sky-950"></div>
-          <button id="btn-online-start" onclick="startGame()" class="hidden mt-2 w-full bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold py-2 rounded-xl text-xs">INICIAR JUEGO · 4/4</button>
+        <div id="join-code-area" class="hidden mt-3">
+          <input id="room-code-input" type="text" maxlength="6" placeholder="CÓDIGO DE SALA" autocomplete="off" class="w-full px-3 py-2 border border-sky-200 rounded-xl text-center text-sm font-extrabold tracking-widest uppercase focus:outline-none focus:border-amber-400">
+          <button id="btn-join-room" onclick="joinOnlineRoom()" class="mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">UNIRME A LA SALA</button>
+        </div>
+        <div id="online-lobby" class="hidden mt-3 bg-white/70 rounded-2xl border border-sky-100 p-3">
+          <div class="text-xs font-extrabold text-sky-950 mb-1">Sala: <span id="room-code-display" class="text-amber-600 tracking-widest">------</span></div>
+          <div id="room-players" class="text-left text-[11px] text-sky-950"></div>
+          <div id="online-status" class="mt-2 text-[11px] font-semibold text-sky-700">Esperando jugadores...</div>
+          <button id="btn-online-start" onclick="startGame()" class="hidden mt-3 w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-2.5 rounded-xl shadow-md text-xs">INICIAR JUEGO</button>
         </div>
       </div>
 
-      <div class="flex gap-2 mb-4">
-        <button onclick="addPlayerInput()" class="w-1/2 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">
-          + Agregar Jugador
-        </button>
-        <button onclick="startGame()" class="w-1/2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-2 rounded-xl shadow-md text-xs transition-all">
-          ¡Comenzar Juego! 🚀
-        </button>
-      </div>
     </div>
   </div>
 
@@ -139,10 +131,6 @@
       return `${protocol}//${location.host}/ws`;
     }
 
-    function getPlayerName() {
-      const input = document.querySelector('.player-name-input');
-      return (input && input.value.trim()) || 'Jugador';
-    }
 
     function setOnlineStatus(msg) {
       const el = document.getElementById('online-status');
@@ -173,24 +161,15 @@
     function showJoinRoom() {
       onlineMode = true;
       isHost = false;
-      document.getElementById('online-room-area').classList.remove('hidden');
+      document.getElementById('join-code-area').classList.remove('hidden');
       document.getElementById('room-code-input').value = '';
       document.getElementById('btn-join-room').classList.remove('hidden');
+      document.getElementById('online-lobby').classList.remove('hidden');
       document.getElementById('btn-online-start').classList.add('hidden');
       setOnlineStatus('Escribe el código de la sala que te dio el anfitrión.');
       document.getElementById('room-code-input').focus();
     }
 
-    function addPlayerInput() {
-      const container = document.getElementById('players-input-list');
-      const current = container.querySelectorAll('input').length;
-      if (current >= 4) return;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = `Jugador ${current + 1}`;
-      input.className = 'player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400';
-      container.appendChild(input);
-    }
 
     function sendOnline(message) {
       if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
@@ -215,39 +194,48 @@
       });
     }
 
+    function getPlayerName() {
+      const input = document.getElementById('player-name-input');
+      const name = input ? input.value.trim().replace(/\s+/g, ' ') : '';
+      if (!name) {
+        setOnlineStatus('Escribe tu nombre antes de continuar.');
+        if (input) input.focus();
+        return null;
+      }
+      return name.slice(0, 24);
+    }
+
     function createOnlineRoom() {
       onlineMode = true;
       isHost = true;
       myPlayerIndex = 0;
-      document.getElementById('online-room-area').classList.remove('hidden');
-      document.getElementById('btn-join-room').classList.add('hidden');
+      document.getElementById('online-lobby').classList.remove('hidden');
+      document.getElementById('join-code-area').classList.add('hidden');
       setOnlineStatus('Creando sala...');
-      connectSocket(() => sendOnline({ type: 'create_room', name: getPlayerName() }));
+      const name = getPlayerName();
+      if (!name) return;
+      connectSocket(() => sendOnline({ type: 'create_room', name }));
     }
 
     function joinOnlineRoom() {
       onlineMode = true;
       isHost = false;
+      const name = getPlayerName();
+      if (!name) return;
       const code = document.getElementById('room-code-input').value.trim().toUpperCase();
       if (!/^[A-Z0-9]{6}$/.test(code)) {
         setOnlineStatus('El código debe tener 6 caracteres.');
         return;
       }
       setOnlineStatus('Entrando a la sala...');
-      connectSocket(() => sendOnline({ type: 'join_room', roomCode: code, name: getPlayerName() }));
+      connectSocket(() => sendOnline({ type: 'join_room', roomCode: code, name }));
     }
 
     function startGame() {
-      if (onlineMode) {
-        if (!isHost) return setOnlineStatus('Solo el anfitrión puede iniciar.');
-        if (players.length !== 4) return setOnlineStatus('Deben estar conectados los 4 jugadores.');
-        sendOnline({ type: 'start_game' });
-        return;
-      }
-      players = Array.from(document.querySelectorAll('.player-name-input')).map((input, i) => input.value.trim() || `Jugador ${i + 1}`);
-      currentPlayerIndex = 0;
-      updateTurnBanner();
-      document.getElementById('setup-modal').classList.add('hidden');
+      if (!onlineMode) return;
+      if (!isHost) return setOnlineStatus('Solo el anfitrión puede iniciar.');
+      if (players.length !== 4) return setOnlineStatus('Deben estar conectados los 4 jugadores.');
+      sendOnline({ type: 'start_game' });
     }
 
     function updateTurnBanner() {
@@ -259,6 +247,7 @@
       if (msg.type === 'room_created') {
         roomCode = msg.roomCode; myPlayerIndex = 0; players = msg.players || [];
         document.getElementById('room-code-input').value = roomCode;
+        document.getElementById('room-code-display').innerText = roomCode;
         updateOnlineLobby();
         setOnlineStatus(`Código ${roomCode}. Comparte este código con los otros 3 jugadores.`);
         return;
@@ -266,6 +255,7 @@
       if (msg.type === 'joined') {
         roomCode = msg.roomCode; myPlayerIndex = msg.playerIndex; players = msg.players || [];
         document.getElementById('room-code-input').value = roomCode;
+        document.getElementById('room-code-display').innerText = roomCode;
         updateOnlineLobby();
         return;
       }
@@ -306,6 +296,7 @@
         document.getElementById('quiz-modal').classList.add('hidden');
         document.getElementById('gameover-modal').classList.add('hidden');
         document.getElementById('setup-modal').classList.remove('hidden');
+        document.getElementById('online-lobby').classList.remove('hidden');
         updateOnlineLobby();
         return;
       }

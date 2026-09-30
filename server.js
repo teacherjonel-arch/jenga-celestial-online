@@ -23,9 +23,10 @@ function makeRoomCode() {
   return code;
 }
 
-function cleanName(name, fallback) {
-  const value = String(name || '').trim().slice(0, 30);
-  return value || fallback;
+
+function cleanName(value, fallback) {
+  const name = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+  return name || fallback;
 }
 
 function publicRoom(room) {
@@ -186,6 +187,7 @@ wss.on('connection', ws => {
 
       broadcast(room, {
         type: 'answer_result',
+        playerIndex: failedPlayerIndex,
         blockId: block.id,
         selected,
         currentPlayerIndex: room.currentPlayerIndex,
