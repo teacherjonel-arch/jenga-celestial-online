@@ -23,10 +23,9 @@ function makeRoomCode() {
   return code;
 }
 
-
-function cleanName(value, fallback) {
-  const name = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 24);
-  return name || fallback;
+function cleanName(name, fallback) {
+  const value = String(name || '').trim().slice(0, 30);
+  return value || fallback;
 }
 
 function publicRoom(room) {
@@ -150,7 +149,7 @@ wss.on('connection', ws => {
 
     if (msg.type === 'start_game') {
       if (player.index !== 0) return send(ws, { type: 'error', message: 'Solo el anfitrión puede iniciar.' });
-      if (room.players.length !== 4) return send(ws, { type: 'error', message: `Faltan ${4 - room.players.length} jugador(es).` });
+      if (room.players.length < 2) return send(ws, { type: 'error', message: 'Se necesitan al menos 2 jugadores para iniciar.' });
       room.started = true;
       room.isFallen = false;
       room.currentPlayerIndex = 0;
@@ -183,11 +182,10 @@ wss.on('connection', ws => {
       const layerBlocks = room.blocks.filter(b => b.layer === block.layer && !b.removed);
       const fallen = layerBlocks.length === 0;
       room.isFallen = fallen;
-      room.currentPlayerIndex = (room.currentPlayerIndex + 1) % 4;
+      room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length;
 
       broadcast(room, {
         type: 'answer_result',
-        playerIndex: failedPlayerIndex,
         blockId: block.id,
         selected,
         currentPlayerIndex: room.currentPlayerIndex,
