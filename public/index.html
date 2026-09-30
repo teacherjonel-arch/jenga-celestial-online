@@ -39,21 +39,20 @@
         <input type="text" placeholder="Jugador 2" class="player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400">
       </div>
 
-      <!-- MODO ONLINE: capa añadida sin modificar el diseño del juego -->
+      <!-- MODO ONLINE: sala de 4 jugadores -->
       <div class="border border-sky-200 rounded-2xl p-3 mb-4 bg-white/60">
-        <div class="text-xs font-extrabold text-sky-900 mb-2">🌐 MODO ONLINE · 4 JUGADORES</div>
+        <div class="text-xs font-extrabold text-sky-900 mb-2">🌐 JUEGO ONLINE · 4 JUGADORES</div>
         <div class="flex gap-2">
-          <button onclick="createOnlineRoom()" class="flex-1 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">
-            Crear sala
-          </button>
-          <button onclick="joinOnlineRoom()" class="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-2 rounded-xl text-xs transition-all">
-            Unirse
-          </button>
+          <button id="btn-create-room" onclick="createOnlineRoom()" class="flex-1 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold py-2 rounded-xl text-xs transition-all">CREAR SALA</button>
+          <button id="btn-show-join" onclick="showJoinRoom()" class="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-2 rounded-xl text-xs transition-all">UNIRSE</button>
         </div>
-        <div id="online-room-area" class="hidden mt-2">
-          <input id="room-code-input" type="text" maxlength="12" placeholder="Código de sala"
+        <div id="online-room-area" class="hidden mt-3">
+          <input id="room-code-input" type="text" maxlength="6" placeholder="CÓDIGO DE SALA"
             class="w-full px-3 py-2 border border-sky-200 rounded-xl text-sm text-center uppercase tracking-widest focus:outline-none focus:border-amber-400">
+          <button id="btn-join-room" onclick="joinOnlineRoom()" class="hidden mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs">UNIRME A LA SALA</button>
           <div id="online-status" class="mt-2 text-[11px] text-sky-700 text-center font-semibold"></div>
+          <div id="room-players" class="mt-2 text-left text-[11px] text-sky-950"></div>
+          <button id="btn-online-start" onclick="startGame()" class="hidden mt-2 w-full bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold py-2 rounded-xl text-xs">INICIAR JUEGO · 4/4</button>
         </div>
       </div>
 
@@ -127,8 +126,6 @@
     // --- LÓGICA DE JUGADORES + MODO ONLINE ---
     let players = [];
     let currentPlayerIndex = 0;
-
-    // Conexión online mediante WebSocket (GitHub + Render)
     let onlineMode = false;
     let isHost = false;
     let socket = null;
@@ -142,25 +139,9 @@
       return `${protocol}//${location.host}/ws`;
     }
 
-    function addPlayerInput() {
-      const container = document.getElementById('players-input-list');
-      const current = container.querySelectorAll('input').length;
-      if (current >= 4) {
-        setOnlineStatus("La partida online admite exactamente 4 jugadores.");
-        return;
-      }
-      const count = current + 1;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = `Jugador ${count}`;
-      input.className = 'player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400';
-      container.appendChild(input);
-    }
-
-    function getEnteredNames() {
-      return Array.from(document.querySelectorAll('.player-name-input'))
-        .slice(0, 4)
-        .map((input, idx) => input.value.trim() || `Jugador ${idx + 1}`);
+    function getPlayerName() {
+      const input = document.querySelector('.player-name-input');
+      return (input && input.value.trim()) || 'Jugador';
     }
 
     function setOnlineStatus(msg) {
@@ -168,236 +149,183 @@
       if (el) el.textContent = msg;
     }
 
-    function setTopOnlineStatus(msg) {
-      let el = document.getElementById('online-top-status');
-      if (!el) {
-        el = document.createElement('div');
-        el.id = 'online-top-status';
-        el.className = 'absolute top-20 left-1/2 -translate-x-1/2 z-10 bg-white/85 backdrop-blur-md px-3 py-1 rounded-full text-[11px] text-sky-900 font-bold shadow';
-        document.body.appendChild(el);
-      }
-      el.textContent = msg;
-      el.classList.remove('hidden');
+    function renderRoomPlayers() {
+      const box = document.getElementById('room-players');
+      if (!box) return;
+      if (!players.length) { box.innerHTML = ''; return; }
+      box.innerHTML = players.map((name, i) =>
+        `<div class="flex items-center gap-2 py-1"><span class="text-emerald-600">●</span><b>${i + 1}.</b> ${escapeHtml(name)}${i === 0 ? ' <span class="text-amber-600">(anfitrión)</span>' : ''}</div>`
+      ).join('');
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+    }
+
+    function updateOnlineLobby() {
+      renderRoomPlayers();
+      const count = players.length;
+      setOnlineStatus(count < 4 ? `Esperando jugadores: ${count}/4` : '¡Los 4 jugadores están conectados!');
+      const startBtn = document.getElementById('btn-online-start');
+      if (startBtn) startBtn.classList.toggle('hidden', !(isHost && count === 4));
+    }
+
+    function showJoinRoom() {
+      onlineMode = true;
+      isHost = false;
+      document.getElementById('online-room-area').classList.remove('hidden');
+      document.getElementById('room-code-input').value = '';
+      document.getElementById('btn-join-room').classList.remove('hidden');
+      document.getElementById('btn-online-start').classList.add('hidden');
+      setOnlineStatus('Escribe el código de la sala que te dio el anfitrión.');
+      document.getElementById('room-code-input').focus();
+    }
+
+    function addPlayerInput() {
+      const container = document.getElementById('players-input-list');
+      const current = container.querySelectorAll('input').length;
+      if (current >= 4) return;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = `Jugador ${current + 1}`;
+      input.className = 'player-name-input w-full px-3 py-2 border border-sky-200 rounded-xl text-sm focus:outline-none focus:border-amber-400';
+      container.appendChild(input);
     }
 
     function sendOnline(message) {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(message));
-      }
+      if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+      else setOnlineStatus('Conectando...');
     }
 
     function connectSocket(callback) {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        callback();
+      if (socket && socket.readyState === WebSocket.OPEN) return callback();
+      if (socket && socket.readyState === WebSocket.CONNECTING) {
+        socket.addEventListener('open', callback, { once: true });
         return;
       }
-      setOnlineStatus('Conectando al servidor online...');
+      setOnlineStatus('Conectando al servidor...');
       socket = new WebSocket(wsUrl());
       socket.addEventListener('open', callback, { once: true });
       socket.addEventListener('message', event => {
-        try { handleServerMessage(JSON.parse(event.data)); }
-        catch (e) { console.error('Mensaje inválido:', e); }
+        try { handleServerMessage(JSON.parse(event.data)); } catch (e) { console.error(e); }
       });
+      socket.addEventListener('error', () => setOnlineStatus('No se pudo conectar al servidor.'));
       socket.addEventListener('close', () => {
-        if (onlineMode) setOnlineStatus('Se perdió la conexión con el servidor.');
+        if (onlineMode && !gameStartedOnline) setOnlineStatus('Conexión cerrada. Recarga la página para volver a entrar.');
       });
-      socket.addEventListener('error', () => setOnlineStatus('No se pudo conectar al servidor online.'));
     }
 
     function createOnlineRoom() {
       onlineMode = true;
       isHost = true;
       myPlayerIndex = 0;
-      players = [];
-      setOnlineStatus('Creando sala...');
       document.getElementById('online-room-area').classList.remove('hidden');
-
-      connectSocket(() => {
-        sendOnline({
-          type: 'create_room',
-          name: getEnteredNames()[0] || 'Jugador 1'
-        });
-      });
+      document.getElementById('btn-join-room').classList.add('hidden');
+      setOnlineStatus('Creando sala...');
+      connectSocket(() => sendOnline({ type: 'create_room', name: getPlayerName() }));
     }
 
     function joinOnlineRoom() {
       onlineMode = true;
       isHost = false;
-      document.getElementById('online-room-area').classList.remove('hidden');
-      const code = (document.getElementById('room-code-input').value || '').trim().toUpperCase();
-      if (!code) {
-        setOnlineStatus('Escribe el código de la sala.');
+      const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+      if (!/^[A-Z0-9]{6}$/.test(code)) {
+        setOnlineStatus('El código debe tener 6 caracteres.');
         return;
       }
-
-      setOnlineStatus('Conectando a la sala...');
-      connectSocket(() => {
-        sendOnline({
-          type: 'join_room',
-          roomCode: code,
-          name: getEnteredNames()[0] || 'Jugador'
-        });
-      });
+      setOnlineStatus('Entrando a la sala...');
+      connectSocket(() => sendOnline({ type: 'join_room', roomCode: code, name: getPlayerName() }));
     }
 
     function startGame() {
       if (onlineMode) {
-        if (!isHost) {
-          setOnlineStatus('El anfitrión debe iniciar la partida.');
-          return;
-        }
+        if (!isHost) return setOnlineStatus('Solo el anfitrión puede iniciar.');
+        if (players.length !== 4) return setOnlineStatus('Deben estar conectados los 4 jugadores.');
         sendOnline({ type: 'start_game' });
         return;
       }
-
-      players = getEnteredNames();
+      players = Array.from(document.querySelectorAll('.player-name-input')).map((input, i) => input.value.trim() || `Jugador ${i + 1}`);
       currentPlayerIndex = 0;
       updateTurnBanner();
       document.getElementById('setup-modal').classList.add('hidden');
     }
 
     function updateTurnBanner() {
-      if (players.length > 0) {
-        document.getElementById('current-player-name').innerText = players[currentPlayerIndex] || `Jugador ${currentPlayerIndex + 1}`;
-      }
+      const el = document.getElementById('current-player-name');
+      if (el) el.innerText = players[currentPlayerIndex] || '--';
     }
 
-    function nextTurn() {
-      if (players.length > 0) {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    function handleServerMessage(msg) {
+      if (msg.type === 'room_created') {
+        roomCode = msg.roomCode; myPlayerIndex = 0; players = msg.players || [];
+        document.getElementById('room-code-input').value = roomCode;
+        updateOnlineLobby();
+        setOnlineStatus(`Código ${roomCode}. Comparte este código con los otros 3 jugadores.`);
+        return;
+      }
+      if (msg.type === 'joined') {
+        roomCode = msg.roomCode; myPlayerIndex = msg.playerIndex; players = msg.players || [];
+        document.getElementById('room-code-input').value = roomCode;
+        updateOnlineLobby();
+        return;
+      }
+      if (msg.type === 'lobby') {
+        players = msg.players || [];
+        updateOnlineLobby();
+        return;
+      }
+      if (msg.type === 'error') { setOnlineStatus(msg.message || 'Error.'); return; }
+      if (msg.type === 'start') {
+        players = msg.players || players; currentPlayerIndex = msg.currentPlayerIndex || 0;
+        gameStartedOnline = true; buildTower(); applyGameState(msg.state);
+        document.getElementById('setup-modal').classList.add('hidden');
         updateTurnBanner();
+        return;
+      }
+      if (msg.type === 'question') {
+        const block = blocks.find(b => b.userData.id === msg.blockId);
+        if (!block) return;
+        if (msg.playerIndex === myPlayerIndex) openQuestion(block, true);
+        else setTopOnlineStatus(`Turno de ${players[msg.playerIndex] || 'otro jugador'} · está respondiendo`);
+        return;
+      }
+      if (msg.type === 'answer_result') {
+        const block = blocks.find(b => b.userData.id === msg.blockId);
+        if (!block) return;
+        if (msg.playerIndex === myPlayerIndex || !document.getElementById('quiz-modal').classList.contains('hidden')) {
+          showAnswerFeedback(block.userData.questionData, msg.selected);
+        }
+        if (!block.userData.removed) { block.userData.removed = true; animateBlockRemoval(block); }
+        currentPlayerIndex = msg.currentPlayerIndex; updateTurnBanner();
+        document.getElementById('quiz-modal').classList.add('hidden');
+        if (msg.fallen) setTimeout(() => triggerCollapse(msg.failedPlayerIndex), 100);
+        return;
+      }
+      if (msg.type === 'reset') {
+        gameStartedOnline = false; isFallen = false; buildTower();
+        document.getElementById('quiz-modal').classList.add('hidden');
+        document.getElementById('gameover-modal').classList.add('hidden');
+        document.getElementById('setup-modal').classList.remove('hidden');
+        updateOnlineLobby();
+        return;
+      }
+      if (msg.type === 'room_closed') {
+        onlineMode = false; gameStartedOnline = false; setOnlineStatus('El anfitrión cerró la sala.');
       }
     }
 
     function getGameState() {
-      return {
-        currentPlayerIndex,
-        isFallen,
-        blocks: blocks.map(b => ({
-          id: b.userData.id,
-          removed: b.userData.removed,
-          visible: b.visible
-        }))
-      };
+      return { currentPlayerIndex, isFallen, blocks: blocks.map(b => ({ id:b.userData.id, removed:b.userData.removed, visible:b.visible })) };
     }
 
     function applyGameState(state) {
       if (!state) return;
-      currentPlayerIndex = state.currentPlayerIndex ?? 0;
-      isFallen = !!state.isFallen;
-      if (state.blocks) {
-        state.blocks.forEach(item => {
-          const block = blocks.find(b => b.userData.id === item.id);
-          if (block) {
-            block.userData.removed = !!item.removed;
-            block.visible = item.visible !== false;
-          }
-        });
-      }
+      currentPlayerIndex = state.currentPlayerIndex ?? 0; isFallen = !!state.isFallen;
+      (state.blocks || []).forEach(item => {
+        const block = blocks.find(b => b.userData.id === item.id);
+        if (block) { block.userData.removed = !!item.removed; block.visible = item.visible !== false; }
+      });
       updateTurnBanner();
-    }
-
-    function handleServerMessage(msg) {
-      if (!msg) return;
-
-      if (msg.type === 'room_created') {
-        roomCode = msg.roomCode;
-        myPlayerIndex = msg.playerIndex;
-        players = msg.players || [getEnteredNames()[0] || 'Jugador 1'];
-        document.getElementById('room-code-input').value = roomCode;
-        setOnlineStatus(`Sala creada. Comparte el código ${roomCode} con los otros 3 jugadores.`);
-        setTopOnlineStatus(`🌐 Sala ${roomCode} · 1/4 jugadores`);
-        return;
-      }
-
-      if (msg.type === 'joined') {
-        roomCode = msg.roomCode;
-        myPlayerIndex = msg.playerIndex;
-        players = msg.players || players;
-        document.getElementById('room-code-input').value = roomCode;
-        setOnlineStatus(`Conectado como ${players[myPlayerIndex] || 'Jugador'}. Esperando al anfitrión...`);
-        setTopOnlineStatus(`🌐 Sala ${roomCode} · ${msg.connected}/4 jugadores`);
-        updateTurnBanner();
-        return;
-      }
-
-      if (msg.type === 'lobby') {
-        players = msg.players || players;
-        setOnlineStatus(`Jugadores conectados: ${msg.connected}/4`);
-        setTopOnlineStatus(`🌐 Sala ${roomCode} · ${msg.connected}/4 jugadores`);
-        updateTurnBanner();
-        return;
-      }
-
-      if (msg.type === 'error') {
-        setOnlineStatus(msg.message || 'No se pudo realizar la operación.');
-        return;
-      }
-
-      if (msg.type === 'start') {
-        players = msg.players || players;
-        currentPlayerIndex = msg.currentPlayerIndex || 0;
-        gameStartedOnline = true;
-        buildTower();
-        applyGameState(msg.state);
-        document.getElementById('setup-modal').classList.add('hidden');
-        setTopOnlineStatus(`🌐 ONLINE · Sala ${roomCode} · 4/4 jugadores`);
-        updateTurnBanner();
-        return;
-      }
-
-      if (msg.type === 'question') {
-        const block = blocks.find(b => b.userData.id === msg.blockId);
-        if (block) {
-          currentBlock = block;
-          openQuestion(block, true);
-          const canAnswer = myPlayerIndex === msg.playerIndex;
-          Array.from(document.getElementById('options-container').children).forEach(btn => btn.disabled = !canAnswer);
-          if (!canAnswer) document.getElementById('btn-next').classList.remove('hidden');
-        }
-        return;
-      }
-
-      if (msg.type === 'answer_result') {
-        const block = blocks.find(b => b.userData.id === msg.blockId);
-        if (!block) return;
-        showAnswerFeedback(block.userData.questionData, msg.selected);
-        if (!block.userData.removed) {
-          block.userData.removed = true;
-          animateBlockRemoval(block);
-        }
-        currentPlayerIndex = msg.currentPlayerIndex;
-        updateTurnBanner();
-        document.getElementById('btn-next').classList.remove('hidden');
-        if (msg.fallen) {
-          setTimeout(() => {
-            triggerCollapse(msg.failedPlayerIndex);
-          }, 100);
-        }
-        return;
-      }
-
-      if (msg.type === 'collapse') {
-        triggerCollapse(msg.failedPlayerIndex);
-        return;
-      }
-
-      if (msg.type === 'reset') {
-        gameStartedOnline = false;
-        isFallen = false;
-        document.getElementById('quiz-modal').classList.add('hidden');
-        document.getElementById('gameover-modal').classList.add('hidden');
-        buildTower();
-        document.getElementById('setup-modal').classList.remove('hidden');
-        return;
-      }
-
-      if (msg.type === 'room_closed') {
-        setOnlineStatus('La sala fue cerrada por el anfitrión.');
-        gameStartedOnline = false;
-        onlineMode = false;
-        return;
-      }
     }
 
     // --- BANCO DE 36 PREGUNTAS CATÓLICAS Y REFLEXIVAS ---
