@@ -1,0 +1,16 @@
+{
+  "name": "jenga-celestial-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jenga Celestial 3D online para 4 jugadores",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
